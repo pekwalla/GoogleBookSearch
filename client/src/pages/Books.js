@@ -1,18 +1,19 @@
 import React, { Component } from "react";
 import DeleteBtn from "../components/DeleteBtn";
 import Jumbotron from "../components/Jumbotron";
+import AddBtn from "../components/AddBtn";
 import API from "../utils/API";
 import { Link } from "react-router-dom";
 import { Col, Row, Container } from "../components/Grid";
 import { List, ListItem } from "../components/List";
-import { Input, TextArea, FormBtn } from "../components/Form";
+import { Input,FormBtn } from "../components/Form";
 
 class Books extends Component {
   state = {
     books: [],
     title: "",
     author: "",
-    synopsis: ""
+    bookSearch: []
   };
 
   componentDidMount() {
@@ -22,7 +23,7 @@ class Books extends Component {
   loadBooks = () => {
     API.getBooks()
       .then(res =>
-        this.setState({ books: res.data, title: "", author: "", synopsis: "" })
+        this.setState({ books: res.data, title: "", author: "" })
       )
       .catch(err => console.log(err));
   };
@@ -42,16 +43,35 @@ class Books extends Component {
 
   handleFormSubmit = event => {
     event.preventDefault();
-    if (this.state.title && this.state.author) {
-      API.saveBook({
-        title: this.state.title,
-        author: this.state.author,
-        synopsis: this.state.synopsis
-      })
-        .then(res => this.loadBooks())
+
+
+
+
+    if (this.state.title) {
+
+      API.searchBook(this.state.title)
+        .then(res => {
+          console.log(res);
+          this.setState({ bookSearch: res.data.items });
+        })
         .catch(err => console.log(err));
     }
-  };
+
+  }
+
+  saveBook = (title, author,snipet) => {
+    var authorString = author.toString();
+     
+    console.log(title, authorString);
+    API.saveBook({
+      title: title,
+      author: authorString
+       
+    })
+      .then(res => this.loadBooks())
+      .catch(err => console.log(err));
+  }
+
 
   render() {
     return (
@@ -59,7 +79,7 @@ class Books extends Component {
         <Row>
           <Col size="md-6">
             <Jumbotron>
-              <h1>What Books Should I Read?</h1>
+              <h1>Search for book by title</h1>
             </Jumbotron>
             <form>
               <Input
@@ -68,23 +88,11 @@ class Books extends Component {
                 name="title"
                 placeholder="Title (required)"
               />
-              <Input
-                value={this.state.author}
-                onChange={this.handleInputChange}
-                name="author"
-                placeholder="Author (required)"
-              />
-              <TextArea
-                value={this.state.synopsis}
-                onChange={this.handleInputChange}
-                name="synopsis"
-                placeholder="Synopsis (Optional)"
-              />
               <FormBtn
-                disabled={!(this.state.author && this.state.title)}
+               // disabled={!(this.state.title)}
                 onClick={this.handleFormSubmit}
               >
-                Submit Book
+                Search Book
               </FormBtn>
             </form>
           </Col>
@@ -106,11 +114,31 @@ class Books extends Component {
                 ))}
               </List>
             ) : (
-              <h3>No Results to Display</h3>
-            )}
+                <h3>No Results to Display</h3>
+              )}
           </Col>
         </Row>
+        <Row>
+          {this.state.bookSearch.length ? (
+            <List>
+              {this.state.bookSearch.map((book, index) => (
+                <ListItem key={index}>
+                  <strong>
+                    {book.volumeInfo.title} by {book.volumeInfo.authors}
+                    
+                  </strong>
+                  <div> {book.searchInfo.textSnippet}</div>
+                  <AddBtn onClick={()=> this.saveBook(book.volumeInfo.title, book.volumeInfo.authors)}></AddBtn>
+                </ListItem>  
+              ))}
+            </List>
+          ) : (
+              <h3>No Results to Display</h3>
+            )}
+        </Row>
       </Container>
+
+
     );
   }
 }
